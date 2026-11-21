@@ -12,7 +12,7 @@
     <div class="mark" aria-hidden="true"><span></span></div>
     <div>
       <h1>Launch Radar</h1>
-      <p class="tag">Every protocol that records no token, ranked by the value its token would carry if it launched at its current record.</p>
+      <p class="tag">Protocols that could still issue a token of their own, ranked by the value that token would carry if it launched at their current record.</p>
     </div>
   </div>
   <dl class="stats" id="stats"></dl>
@@ -78,6 +78,22 @@
   </table>
   <p class="empty" id="empty" hidden>No protocol matches those filters. Loosen one and the board fills again.</p>
 </main>
+
+<section class="tracked" aria-label="Tracked, not ranked">
+  <h2>Tracked, not ranked <span class="dim" id="tracked-count"></span></h2>
+  <p class="dim">The radar ranks protocols that could issue a token of their own. Wrapped, staked and bridged records of assets that already trade, and exchange records, are tracked here instead, because their value already has a market.</p>
+  <table class="board tracked-table">
+    <thead>
+      <tr>
+        <th>Protocol</th>
+        <th>Category</th>
+        <th class="num">TVL</th>
+        <th>Why it is tracked, not ranked</th>
+      </tr>
+    </thead>
+    <tbody id="tracked-rows"></tbody>
+  </table>
+</section>
 
 <section class="live" aria-label="Already trading">
   <h2>Already trading — the comparables the multiples are learned from</h2>

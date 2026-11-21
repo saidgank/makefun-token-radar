@@ -23,10 +23,15 @@
 //   with no listed day is given the snapshot's median age.
 // - breadth_factor: 1 + 0.04 for each chain past the first, capped at eight extra chains.
 //
-// The board ranks every protocol that records no token (342 in this snapshot), watchlist
-// members included, by implied value. Tokenized protocols never appear as rows: they are
-// the comparables the multiples are learned from, and the dashboard shows the largest of
-// them separately as the market's own reference points.
+// The board ranks the launch candidates among the protocols that record no token (342 in
+// this snapshot): the ones that could still issue a token of their own. A no-token record
+// whose value already has a market is tracked, not ranked (see trackedReason): a wrapped,
+// staked or bridged record of an asset that already trades, a liquid staking or restaking
+// product of a tokenized protocol, an exchange record, or a versioned deployment of a
+// protocol family. Watchlist members are always ranked, whatever the rules say.
+// Tokenized protocols never appear as rows either: they are the comparables the multiples
+// are learned from, and the dashboard shows the largest of them separately as the market's
+// own reference points.
 
 /** The snapshot's protocol entry: exactly the ten fields the sealed input carries. */
 export interface SnapshotProtocol {
@@ -103,6 +108,15 @@ export interface BoardRow {
 /** One row as the dashboard carries it: the board row plus nothing it cannot recompute. */
 export interface RadarRow extends BoardRow {}
 
+/** A no-token record the board tracks but does not rank, with the reason in plain words. */
+export interface TrackedRow {
+  slug: string;
+  name: string;
+  category: string | null;
+  tvl_usd: number;
+  reason: string;
+}
+
 /** A tokenized protocol shown as a market reference: its own traded value, not a model's. */
 export interface LiveRow {
   slug: string;
@@ -120,9 +134,10 @@ export interface RadarData {
   as_of: string;
   source: string;
   floor_usd: number;
-  counts: { scanned: number; pre_token: number; watchlist: number; tokenized: number };
+  counts: { scanned: number; pre_token: number; candidates: number; tracked: number; watchlist: number; tokenized: number };
   fit: ModelFit;
   rows: RadarRow[];
+  tracked: TrackedRow[];
   live: LiveRow[];
 }
 
@@ -152,6 +167,38 @@ export function ageDays(asOf: string, listedAt: string | null): number | null {
 /** Whether a protocol records no token at all: no market cap, no CoinGecko id, no symbol. */
 export function isPreToken(p: SnapshotProtocol): boolean {
   return p.mcap_usd === null && p.gecko_id === null && p.symbol === null;
+}
+
+/** The exchanges whose name at the head of a record marks it as the exchange's own record. */
+const EXCHANGE_PREFIXES = ['Binance', 'Coinbase', 'Bybit', 'Kraken', 'Bitget', 'OKX', 'Bitfinex', 'Gemini'];
+/** A whole word in a name that marks a wrapped or staked product of another asset. */
+const WRAPPED_WORD = /\b(wrapped|staked|staking)\b/i;
+/** A version marker at the end of a name: a space, then V2, v3, 2.0 and the like. */
+const VERSION_SUFFIX = /\s(?:V\d+(?:\.\d+)?|v\d+(?:\.\d+)?|\d+\.\d+)$/;
+
+/**
+ * Why a protocol that records no token is tracked but not ranked, or null when it is a
+ * launch candidate: a protocol that could still issue a token of its own. The rules read
+ * only the snapshot's own fields - the record's category and name - and mirror the shape
+ * of the house watchlist's own exclusions. A wrapped, staked or bridged record's value is
+ * the underlying asset's, which already trades; an exchange record is a balance sheet,
+ * not a protocol awaiting a launch; a versioned deployment is one protocol family counted
+ * twice. Watchlist membership overrides every rule here: buildBoard ranks those regardless.
+ */
+export function trackedReason(p: SnapshotProtocol): string | null {
+  const c = p.category ?? '';
+  if (c === 'Bridge' || c === 'Canonical Bridge') return 'bridged record of an asset that already trades';
+  if (c === 'Liquid Staking') return 'liquid staking product of a tokenized protocol';
+  if (c === 'Liquid Restaking') return 'liquid restaking product of a tokenized protocol';
+  if (c === 'Restaked BTC') return 'restaked BTC product of an asset that already trades';
+  if (c === 'CEX') return 'exchange record';
+  if (WRAPPED_WORD.test(p.name)) return 'wrapped or staked product of an asset that already trades';
+  if (VERSION_SUFFIX.test(p.name)) return 'a versioned deployment record, not a protocol of its own';
+  const lower = p.name.toLowerCase();
+  for (const ex of EXCHANGE_PREFIXES) {
+    if (lower.startsWith(ex.toLowerCase())) return 'exchange record';
+  }
+  return null;
 }
 
 /** The median of a sorted, non-empty list. */
@@ -570,7 +617,7 @@ export function farmSteps(p: SnapshotProtocol, age: number | null): string[] {
 export function buildBoard(snapshot: Snapshot, fit: ModelFit): BoardRow[] {
   const watch = new Set(snapshot.watchlist);
   const scored = snapshot.protocols
-    .filter(isPreToken)
+    .filter((p) => isPreToken(p) && (watch.has(p.slug) || trackedReason(p) === null))
     .map((p) => {
       const v = impliedValue(p, snapshot.as_of, fit);
       return { p, ...v };
@@ -609,6 +656,17 @@ export function buildBoard(snapshot: Snapshot, fit: ModelFit): BoardRow[] {
   return rows;
 }
 
+/** The no-token records the board tracks but does not rank, largest TVL first, with reasons. */
+export function trackedRows(snapshot: Snapshot): TrackedRow[] {
+  const watch = new Set(snapshot.watchlist);
+  return snapshot.protocols
+    .filter((p) => isPreToken(p) && !watch.has(p.slug))
+    .map((p) => ({ p, reason: trackedReason(p) }))
+    .filter((x): x is { p: SnapshotProtocol; reason: string } => x.reason !== null)
+    .sort((a, b) => b.p.tvl_usd - a.p.tvl_usd || (a.p.slug < b.p.slug ? -1 : a.p.slug > b.p.slug ? 1 : 0))
+    .map(({ p, reason }) => ({ slug: p.slug, name: p.name, category: p.category, tvl_usd: p.tvl_usd, reason }));
+}
+
 /** The largest tokenized protocols, by market cap: the market's own reference points. */
 export function liveRows(snapshot: Snapshot): LiveRow[] {
   return snapshot.protocols
@@ -631,18 +689,23 @@ export function liveRows(snapshot: Snapshot): LiveRow[] {
 export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: RadarData } {
   const fit = fitModel(snapshot);
   const board = buildBoard(snapshot, fit);
+  const tracked = trackedRows(snapshot);
+  const preToken = snapshot.protocols.filter(isPreToken).length;
   const radar: RadarData = {
     as_of: snapshot.as_of,
     source: snapshot.source,
     floor_usd: snapshot.floor_usd,
     counts: {
       scanned: snapshot.protocols.length,
-      pre_token: board.length,
+      pre_token: preToken,
+      candidates: board.length,
+      tracked: tracked.length,
       watchlist: snapshot.watchlist.length,
-      tokenized: snapshot.protocols.length - board.length,
+      tokenized: snapshot.protocols.length - preToken,
     },
     fit,
     rows: board,
+    tracked,
     live: liveRows(snapshot),
   };
   return { board, radar };

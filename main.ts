@@ -2,7 +2,8 @@
 //
 // It reads the sealed snapshot from /input/snapshot.json (or --input <file|dir>), fits the
 // launch-value model of lib/model.ts to the snapshot's own tokenized protocols, ranks every
-// protocol that records no token by implied value, and writes the hand-in to /output:
+// launch candidate - a protocol that records no token and could still issue one of its
+// own - by implied value, and writes the hand-in to /output:
 //
 //   board.json    the ranked board the gate reads
 //   data.js       the dashboard's dataset, written beside dashboard/ (not part of it)
@@ -95,7 +96,7 @@ writeFileSync(
 const top = board[0]!;
 const fit = radar.fit;
 process.stdout.write(
-  `launch radar: ${snapshot.protocols.length} protocols scanned, ${snapshot.watchlist.length} on the watchlist, ${board.length} pre-token rows ranked\n` +
+  `launch radar: ${snapshot.protocols.length} protocols scanned, ${snapshot.watchlist.length} on the watchlist, ${board.length} launch candidates ranked, ${radar.tracked.length} records tracked separately\n` +
     `launch radar: model fitted on ${fit.peer_count} tokenized peers: global median multiple ${fit.global_multiple.toFixed(3)}x, size slope ${fit.size_slope.toFixed(3)} around $${Math.round(fit.size_center_tvl).toLocaleString('en-US')} TVL\n` +
     `launch radar: rank 1 is ${top.name} at $${top.implied_value_usd.toLocaleString('en-US')} implied; wrote board.json, data.js, dashboard (${pageFiles.length} files), screenshots (${shots.length} images) and dossier.json to ${out}\n`,
 );

@@ -135,6 +135,12 @@ h1::after { content: ""; display: block; }
 .plan li { margin: 7px 0; max-width: 110ch; }
 .plan li::marker { color: var(--signal); font-family: var(--mono); }
 
+/* tracked, not ranked */
+.tracked { margin-top: 26px; }
+.tracked-table tbody tr { cursor: default; }
+.tracked-table tbody tr:hover { background: none; }
+.tracked-table .reason { color: var(--dim); font-size: 13.5px; }
+
 /* live comparables */
 .live { margin-top: 26px; }
 .live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 10px; margin-top: 10px; }

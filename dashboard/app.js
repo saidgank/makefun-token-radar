@@ -37,7 +37,8 @@
   // ---------- header stats ----------
   document.getElementById('stats').innerHTML =
     '<div><dt>Scanned</dt><dd>' + D.counts.scanned + '</dd></div>' +
-    '<div><dt>Pre-token</dt><dd>' + D.counts.pre_token + '</dd></div>' +
+    '<div><dt>Ranked</dt><dd>' + D.counts.candidates + '</dd></div>' +
+    '<div><dt>Tracked separately</dt><dd>' + D.counts.tracked + '</dd></div>' +
     '<div><dt>Watchlist</dt><dd>' + D.counts.watchlist + '</dd></div>' +
     '<div><dt>Snapshot</dt><dd>' + esc(D.as_of) + '</dd></div>';
   document.getElementById('wl-count').textContent = '(' + D.counts.watchlist + ')';
@@ -51,7 +52,11 @@
     'slope of log(multiple) on log(TVL), so large protocols are not valued like small ones. Momentum reads the week\u2019s TVL ' +
     'change, maturity rewards a long record with no token, and breadth adds a little for each extra chain. ' +
     'Every factor is printed on each protocol\u2019s detail view, and the range beside the value runs from the category\u2019s ' +
-    'lower to its upper quartile multiple through the same factors.';
+    'lower to its upper quartile multiple through the same factors. ' +
+    'Eligibility comes first: the board ranks only protocols that could issue a token of their own. A record that ' +
+    'records no token but whose value already has a market \u2014 a wrapped, staked or bridged record of an asset that ' +
+    'already trades, a liquid staking or restaking product, an exchange record, or a versioned duplicate deployment ' +
+    '\u2014 is tracked below the board instead of ranked. Every protocol on the house watchlist is ranked.';
   document.getElementById('fit-list').innerHTML =
     '<dt>Tokenized peers fitted</dt><dd>' + f.peer_count + '</dd>' +
     '<dt>Global median multiple</dt><dd>' + fmtMult(f.global_multiple) + '</dd>' +
@@ -182,7 +187,7 @@
     detail.innerHTML =
       '<div class="detail-head"><div>' +
       '<h2>' + esc(r.name) + (r.watchlist ? '<span class="badge">WATCHLIST</span>' : '') + '</h2>' +
-      '<p class="sub">Rank #' + r.rank + ' of ' + rows.length + ' pre-token protocols \u00b7 ' + esc(r.category || 'Uncategorized') +
+      '<p class="sub">Rank #' + r.rank + ' of ' + rows.length + ' launch candidates \u00b7 ' + esc(r.category || 'Uncategorized') +
       ' \u00b7 records no token in the snapshot (no market cap, CoinGecko id or symbol)</p></div>' +
       '<button class="close" id="close-detail" type="button">Close</button></div>' +
       '<div class="detail-grid"><div>' +
@@ -224,6 +229,15 @@
     }
   }
 
+  // ---------- tracked, not ranked ----------
+  document.getElementById('tracked-count').textContent = '(' + D.tracked.length + ' records)';
+  document.getElementById('tracked-rows').innerHTML = D.tracked.map(function (t) {
+    return '<tr><td><span class="pname">' + esc(t.name) + '</span><span class="slug">' + esc(t.slug) + '</span></td>' +
+      '<td class="cat">' + esc(t.category || 'Uncategorized') + '</td>' +
+      '<td class="num">' + fmtUsd(t.tvl_usd) + '</td>' +
+      '<td class="reason">' + esc(t.reason) + '</td></tr>';
+  }).join('');
+
   // ---------- live comparables ----------
   document.getElementById('live').innerHTML = D.live.map(function (p) {
     return '<div class="live-card"><span class="n">' + esc(p.name) + '</span>' +
@@ -235,7 +249,8 @@
 
   document.getElementById('foot-note').textContent =
     'Board built from ' + D.source + ': ' + D.counts.scanned + ' protocols scanned, ' + D.counts.pre_token +
-    ' record no token, ' + D.counts.watchlist + ' on the house watchlist at the ' + fmtFull(D.floor_usd) + ' floor.';
+    ' record no token, of which ' + D.counts.candidates + ' are ranked as launch candidates and ' + D.counts.tracked +
+    ' are tracked separately; ' + D.counts.watchlist + ' on the house watchlist at the ' + fmtFull(D.floor_usd) + ' floor.';
 
   render();
   if (state.p && bySlug[state.p]) select(state.p, true);
