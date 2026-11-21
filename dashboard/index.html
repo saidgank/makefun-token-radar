@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="mark" aria-hidden="true"><span></span></div>
+    <div>
+      <h1>Launch Radar</h1>
+      <p class="tag">Every protocol that records no token, ranked by the value its token would carry if it launched at its current record.</p>
+    </div>
+  </div>
+  <dl class="stats" id="stats"></dl>
+</header>
+
+<section class="method" id="method" aria-label="How the values are made">
+  <h2>The model, stated plainly</h2>
+  <p id="method-text"></p>
+  <div class="method-grid">
+    <div class="fit-box">
+      <h3>Fitted from this snapshot</h3>
+      <dl id="fit-list"></dl>
+    </div>
+    <div class="fit-box">
+      <h3>Category multiples <span class="dim">(median mcap / TVL of tokenized peers, shrunk)</span></h3>
+      <div class="chips" id="cat-chips"></div>
+    </div>
+  </div>
+</section>
+
+<section class="controls" aria-label="Filter and sort the board">
+  <label class="ctl grow">Search
+    <input id="q" type="search" placeholder="Protocol name or slug" autocomplete="off">
+  </label>
+  <label class="ctl">Category
+    <select id="cat"></select>
+  </label>
+  <label class="ctl">Chain
+    <select id="chain"></select>
+  </label>
+  <label class="ctl">Sort by
+    <select id="sort">
+      <option value="rank">Rank</option>
+      <option value="implied">Implied value</option>
+      <option value="tvl">TVL</option>
+      <option value="change">7d change</option>
+      <option value="age">Age (tokenless record)</option>
+    </select>
+  </label>
+  <label class="ctl check">
+    <input id="wl" type="checkbox"> Watchlist only <span class="dim" id="wl-count"></span>
+  </label>
+  <p class="shown" id="shown" role="status"></p>
+</section>
+
+<section id="detail" class="detail" hidden aria-label="Protocol detail"></section>
+
+<main>
+  <table class="board" id="board">
+    <thead>
+      <tr>
+        <th class="num">#</th>
+        <th>Protocol</th>
+        <th>Category</th>
+        <th>Chains</th>
+        <th class="num">TVL</th>
+        <th class="num">7d</th>
+        <th class="num">Implied value</th>
+        <th class="num">&times;TVL</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p class="empty" id="empty" hidden>No protocol matches those filters. Loosen one and the board fills again.</p>
+</main>
+
+<section class="live" aria-label="Already trading">
+  <h2>Already trading — the comparables the multiples are learned from</h2>
+  <p class="dim">These protocols' tokens already trade, so they are never ranked. Their market caps against their TVL are the evidence the model above is fitted to; the largest of them are:</p>
+  <div class="live-grid" id="live"></div>
+</section>
+
+<footer>
+  <p id="foot-note"></p>
+  <p class="dim">Implied values are this board's own model claims, derived only from the sealed snapshot's figures. A protocol "records no token" when the snapshot carries no market cap, CoinGecko id or symbol for it; that is a statement about the record, not about the world. Nothing here is a prediction that a token will be issued.</p>
+</footer>
+
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
